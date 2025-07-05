@@ -88,3 +88,12 @@ dmypy.json
 # Windows
 Thumbs.db
 ehthumbs.db
+
+*.jpeg
+*.jpg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.webp
+*.tif

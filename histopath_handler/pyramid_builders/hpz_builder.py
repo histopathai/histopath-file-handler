@@ -51,10 +51,11 @@ class HPZBuilder(IPyramidBuilder):
         temp_meta_dir = None
         meta_json_temp_path = None
         if metadata is not None:
-            temp_meta_dir_suffix = get_basename_without_extension(output_hpz_path)
-            temp_meta_dir = os.path.join(os.path.dirname(output_hpz_path) or '.', f"temp_meta_{temp_meta_dir_suffix}")
+            temp_dir_unique_id = f"{get_basename_without_extension(output_hpz_path)}_{os.getpid()}"
+            temp_meta_dir = os.path.join(os.path.dirname(output_hpz_path) or '.', f"temp_meta_json_{temp_dir_unique_id}")
             os.makedirs(temp_meta_dir, exist_ok=True)
             meta_json_temp_path = os.path.join(temp_meta_dir, HPZ_META_JSON_FILENAME)
+
 
         try:
             print(f"Creating HPZ archive at: {output_hpz_path} from existing DeepZoom output: {deepzoom_base_output}...")
@@ -84,6 +85,8 @@ class HPZBuilder(IPyramidBuilder):
             return output_hpz_path
         except zipfile.BadZipFile as e:
             raise ExtractionError(f"Failed to create HPZ archive: {str(e)}") from e
+        except FileNotFoundError as e:
+            raise ExtractionError(f"File not found during HPZ archive creation: {str(e)}") from e
         except Exception as e:
             raise ExtractionError(f"An unexpected error occurred while creating HPZ archive: {str(e)}") from e
         finally:

@@ -40,6 +40,9 @@ class ImageInfo:
     height_l0: int
     level_count: int
     level_dimensions: List[Tuple[int, int]] = field(default_factory=list)
+    mpp_x : Optional[float] = None
+    mpp_y : Optional[float] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     def get_dimensions_at_level(self, level: int) -> Tuple[int, int]:
         if not (0 <= level < self.level_count):

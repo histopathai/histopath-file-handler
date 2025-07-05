@@ -12,15 +12,20 @@ class IFileLoader(ABC):
         pass
 
     @abstractmethod
-    def get_image_info(self, file_path:str, loaded_image_object:Any) -> ImageInfo:
+    def get_image_info(self, file_path:str, image_object:Any) -> ImageInfo:
         pass
 
     @abstractmethod
-    def get_thumbnail(self, loaded_image_object: Any, max_width: int) -> pyvips.Image:
+    def get_thumbnail(self, image_object: Any, max_width: int) -> pyvips.Image:
         pass
 
     @abstractmethod
-    def close_image(self, loaded_image_object: Any):
+    def close_image(self, image_object: Any):
+        pass
+
+    @abstractmethod
+    def get_dimensions(self, image_object: Any) -> Tuple[int, int]:
+        """Get the dimensions of the image object."""
         pass
 
 

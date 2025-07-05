@@ -16,7 +16,7 @@ class DeepZoomBuilder(IPyramidBuilder):
 
     def build_deepzoom_pyramid(self,
                                image_object: pyvips.Image, # Expects a pyvips.Image object
-                               output_base_path: str,     # e.g., "output/my_image" or "output/my_image.zip"
+                               output_path: str,     # e.g., "output/my_image" or "output/my_image.zip"
                                tile_size: int = DEFAULT_TILE_SIZE,
                                overlap: int = DEFAULT_TILE_OVERLAP,
                                suffix: str = DEFAULT_DEEPZOOM_TILE_SUFFIX,
@@ -28,7 +28,9 @@ class DeepZoomBuilder(IPyramidBuilder):
                                centre: bool = False
                                ) -> str:
         
-        print(f"Building DeepZoom pyramid to: {output_base_path} (container: {container})...")
+
+        print(f"Building DeepZoom pyramid to: {output_path} (container: {container})...")
+
 
         try:
             dzsave_options = {
@@ -49,25 +51,13 @@ class DeepZoomBuilder(IPyramidBuilder):
             if background is not None:
                 dzsave_options['background'] = list(background)
 
+            print(output_path)
+            image_object.dzsave(output_path, **dzsave_options)
 
-            image_object.dzsave(output_base_path, **dzsave_options)
-
-            final_output_path = output_base_path
-
-            if container == 'fs':
-                final_output_path = os.path.join(output_base_path + ".dzi")
-            
-            print(f"DeepZoom pyramid built successfully at: {final_output_path}")
-            return final_output_path
-        
+        except UnsupportedOperationError as e:
+            raise ExtractionError(f"Unsupported operation for DeepZoom pyramid: {str(e)}") from e        
         except pyvips.Error as e:
             raise ExtractionError(f"Failed to build DeepZoom pyramid: {str(e)}") from e
         except Exception as e:
             raise ExtractionError(f"An unexpected error occurred while building DeepZoom pyramid: {str(e)}") from e
         
-
-    def build_hpz_archive(self, *args, **kwargs) -> str:
-        raise UnsupportedOperationError(
-            "DeepZoomBuilder only supports building standard DeepZoom pyramids. "
-            "Use HPZBuilder for .hp archive creation."
-        )

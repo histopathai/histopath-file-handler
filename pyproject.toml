@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "histopath-file-handler"
+version = "0.1.0"
+description = "High-performance handler for histopathology image formats"
+authors = [
+    { name="Yasin TUNÇER", email="yasintuncerr@gmail.com" }
+]
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["histopath_handler"]

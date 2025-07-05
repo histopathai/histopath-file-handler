@@ -1,8 +1,9 @@
 import os
 from typing import Any, Dict, Optional, Tuple
-import zipfile
+import zipfile 
 
-from histopath_handler._core.interfaces import ImageInfo, Region, Patch
+# _core
+from histopath_handler._core.models import ImageInfo, Region, Patch
 from histopath_handler._core.exceptions import ImageLoadingError, InvalidRegionError, ExtractionError
 from histopath_handler._core.constants import (
     DEFAULT_TILE_SIZE, DEFAULT_TILE_OVERLAP, DEFAULT_JPEG_QUALITY,
@@ -34,28 +35,32 @@ class HistopathHandler:
 
 
         if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File not found: {file_path}")
-        
-        self._file_path = file_path
-        self._load_image_object = None
-        self._image_info: Optional[ImageInfo] = None
+            raise FileNotFoundError(f"Image file not found at: {file_path}")
 
+        self._file_path = file_path
+        self._loaded_image_object = None # The underlying pyvips.Image or openslide.OpenSlide object
+        self._image_info: Optional[ImageInfo] = None # Cached image information
+
+        # Dependency Injection: Use provided implementations or default ones
         self._loader = loader if loader else FileLoaderFactory.get_loader(file_path)
         self._deepzoom_builder = deepzoom_builder if deepzoom_builder else DeepZoomBuilder()
         self._hpz_builder = hpz_builder if hpz_builder else HPZBuilder()
         self._patch_extractor = patch_extractor if patch_extractor else PatchExtractor()
         self._region_extractor = region_extractor if region_extractor else RegionExtractor()
 
+        # Load the image upon initialization
         try:
-            self._load_image_object = self._loader.load(file_path)
-            self._image_info = self._loader.get_image_info(self._load_image_object)
+            self._loaded_image_object = self._loader.load_image(file_path) # Düzeltme: _loaded_image_object
+            # Cache image info after successful load
+            self._image_info = self._loader.get_image_info(file_path, self._loaded_image_object)
             print(f"[{self._file_path}] Image loaded and info retrieved.")
-        except ImageLoadingError as e:
-            raise ImageLoadingError(f"Failed to load image from {file_path}: {e}")
-        
+        except Exception as e:
+            raise ImageLoadingError(f"Failed to load image '{file_path}': {e}")
+           
+
     def get_image_info(self) -> ImageInfo:
         if not self._image_info:
-
+            # Should ideally be set during init, but as a safeguard
             self._image_info = self._loader.get_image_info(self._file_path, self._loaded_image_object)
         return self._image_info
     
@@ -72,9 +77,11 @@ class HistopathHandler:
                       width: int,
                       height: int,
                       level: int = 0) -> Region:
+        
         if not self._image_info:
             raise RuntimeError("Image information not available.")
-        
+
+        # Basic validation: ensure region is within L0 bounds
         if (left < 0 or top < 0 or
             left + width > self._image_info.width_l0 or
             top + height > self._image_info.height_l0):
@@ -83,7 +90,8 @@ class HistopathHandler:
                 f"is out of image bounds ({self._image_info.width_l0}x{self._image_info.height_l0}) at level 0."
             )
         return Region(left, top, width, height, level)
-    
+
+
     def extract_patch(self,
                       region: Region,
                       output_path: str,
@@ -94,6 +102,8 @@ class HistopathHandler:
         if not self._loaded_image_object:
             raise ImageLoadingError("No image is currently loaded for extraction.")
 
+        # Pass the original loaded image object (likely pyvips.Image) to the extractor
+        # The extractor will handle scaling the region to the correct dimensions for extraction.
         return self._patch_extractor.extract_region(
             self._loaded_image_object,
             region,
@@ -137,11 +147,11 @@ class HistopathHandler:
                                centre: bool = False
                                ) -> str:
 
-        if not self._loaded_image_object:
+        if not self._loaded_image_object: # Düzeltme: _loaded_image_object
             raise ImageLoadingError("No image is currently loaded to build a DeepZoom pyramid.")
 
         return self._deepzoom_builder.build_deepzoom_pyramid(
-            self._loaded_image_object,
+            self._loaded_image_object, # Düzeltme: _loaded_image_object
             output_base_path,
             tile_size,
             overlap,
@@ -154,27 +164,24 @@ class HistopathHandler:
             centre
         )
     
-    def build_hpz_pyramid(self,
-                          deepzoom_base_output: str,
+    def build_hpz_pyramid(self, 
+                          deepzoom_output_base_path: str,
                           output_hpz_path: str,
-                          metadata: Optional[Dict[str, Any]] = None,
+                          meta_data: Optional[Dict[str, Any]] = None,
                           compression_level_zip: int = zipfile.ZIP_DEFLATED
                           ) -> str:
-        if not self._loaded_image_object:
-            raise ImageLoadingError("No image is currently loaded to build an HPZ archive.")
-        
         return self._hpz_builder.build_hpz_archive(
-            deepzoom_base_output,
+            deepzoom_output_base_path,
             output_hpz_path,
-            metadata,
+            meta_data,
             compression_level_zip
         )
     
 
     def close(self):
-        if self._load_image_object:
-            self._loader.close_image(self._load_image_object)
-            self._load_image_object = None
+        if self._loaded_image_object: 
+            self._loader.close_image(self._loaded_image_object)
+            self._loaded_image_object = None
             self._image_info = None
             print(f"[{self._file_path}] Image closed and resources released.")
 

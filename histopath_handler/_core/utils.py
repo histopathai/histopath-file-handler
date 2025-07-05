@@ -51,3 +51,15 @@ def write_json_file(file_path: str, data: Dict[str, Any]):
     validate_file_path(file_path)
     with open(file_path, 'w') as file:
         json.dump(data, file, indent=4)
+
+
+import os
+import zipfile
+
+def zip_directory(folder_path, zip_path):
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(folder_path):
+            for file in files:
+                full_path = os.path.join(root, file)
+                arcname = os.path.relpath(full_path, folder_path) 
+                zipf.write(full_path, arcname)

@@ -44,6 +44,9 @@ class ImageInfo:
     mpp_y : Optional[float] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+    def get_filename(self) -> str:
+        return self.file_path.split('/')[-1] if '/' in self.file_path else self.file_path
+
     def get_dimensions_at_level(self, level: int) -> Tuple[int, int]:
         if not (0 <= level < self.level_count):
             raise IndexError(f"Level {level} is out of bounds for this image.")

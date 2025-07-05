@@ -19,30 +19,30 @@ class PyVipsLoader(IFileLoader):
             raise ImageLoadingError(f"Failed to load image from {file_path}: {str(e)}")
         
     
-    def get_image_info(self, file_path: str, loaded_image_object: pyvips.Image) -> ImageInfo:
+    def get_image_info(self, file_path: str, image_object: pyvips.Image) -> ImageInfo:
         
-        width_l0, height_l0 = loaded_image_object.width, loaded_image_object.height
+        width_l0, height_l0 = image_object.width, image_object.height
+
 
         level_count = int(math.ceil(math.log2(max(width_l0, height_l0)))) + 1
-
         level_dimensions: List[Tuple[int, int]] = []
-
+        
         for level in range(level_count):
-            level_dimensions.w, level_dimensions.h = calculate_scaled_dimensions(width_l0, height_l0, level)
-            level_dimensions.append((level_dimensions.w, level_dimensions.h))
+            lvl_width, lvl_height = calculate_scaled_dimensions(width_l0, height_l0, level)
+            level_dimensions.append((lvl_width, lvl_height))
 
-        mpp_x, mpp_y = self._get_mpp_from_vips_metadata(loaded_image_object)
+        mpp_x, mpp_y = self._get_mpp_from_vips_metadata(image_object)
 
+        # Attempt to gather other relevant metadata directly from pyvips
         metadata = {}
-
         try:
-
-            for key in ["bands", "format", "xres", "yres", "resolution_unit", "vips-loader"]:
-                if loaded_image_object.get_typeof(key) != 0:
-                    metadata[key] = loaded_image_object.get(key)
-
-        except pyvips.Error as e:
-            pass
+            for key in ["bands", "format", "xres", "yres", "resolution-unit", "vips-loader"]:
+                # Check if property exists before trying to get it
+                if image_object.get_typeof(key) != 0:
+                    metadata[key] = image_object.get(key)
+        
+        except pyvips.Error:
+            pass # Ignore if metadata key not found
 
         return ImageInfo(
             file_path=file_path,
@@ -58,31 +58,30 @@ class PyVipsLoader(IFileLoader):
     def _get_mpp_from_vips_metadata(self, image_object: pyvips.Image) -> Tuple[Optional[float],Optional[float]]:
 
         mpp_x, mpp_y = None, None
-
         try:
             xres = image_object.get("xres")
-            y_res = image_object.get("yres")
-            res_unit = image_object.get("resolution_unit") #"cm" "inch"
+            yres = image_object.get("yres")
+            res_unit = image_object.get("resolution-unit") # e.g., "cm", "inch"
 
-            if xres and y_res and res_unit:
+            if xres and yres and res_unit:
+                # Convert pixels per unit to microns per pixel
                 if res_unit == "cm":
-                    mpp_x = (1 / xres) * 10000 # 1 cm = 10,000 microns
-                    mpp_y = (1 / y_res) * 10000
+                    mpp_x = (1 / xres) * 10000 # 1 cm = 10000 microns
+                    mpp_y = (1 / yres) * 10000
                 elif res_unit == "inch":
-                    mpp_x = (1 / xres) * 25400 # 1 inch = 25,400 microns
-                    mpp_y = (1 / y_res) * 25400
-
-        except pyvips.Error as e:
-            pass
+                    mpp_x = (1 / xres) * 25400 # 1 inch = 25400 microns
+                    mpp_y = (1 / yres) * 25400
+        except pyvips.Error:
+            pass # Metadata might not exist or be in an unexpected format
         return mpp_x, mpp_y
+
+    def get_thumbnail(self, image_object: pyvips.Image, max_width: int) -> pyvips.Image:
+
+        return image_object.thumbnail_image(max_width)
     
+    def get_dimensions(self, image_object: pyvips.Image) -> Tuple[int, int]:
+        return image_object.width, image_object.height
 
-    def get_thumbnail(self, loaded_image_object: pyvips.Image, max_width: int) -> pyvips.Image:
+    def close_image(self, image_object: pyvips.Image):
 
-        return loaded_image_object.thumbnail_image(max_width)
-    
-
-    def close_image(self, loaded_image_object: pyvips.Image):
-
-        """ Pyvips handles memorry automatically, so no explicit close is needed. """
         pass

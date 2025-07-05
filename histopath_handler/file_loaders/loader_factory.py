@@ -23,7 +23,7 @@ class FileLoaderFactory:
         if not cls._loaders:
             cls.register_loader(".tiff", PyVipsLoader)
             cls.register_loader(".tif", PyVipsLoader)
-            cls.register_loader(".svs", OpenSlideLoader)
+            cls.register_loader(".svs", PyVipsLoader)
             cls.register_loader(".png", PyVipsLoader)
             cls.register_loader(".jpg", PyVipsLoader)
             cls.register_loader(".jpeg", PyVipsLoader)
@@ -38,9 +38,9 @@ class FileLoaderFactory:
         else:
             print(f"No specific loader found for {file_ext}, using default PyVipsLoader")
             loader_class = PyVipsLoader
-
         if loader_class:
-            return loader_class()
+            return loader_class() 
+        
         else:
             raise UnsupportedFileFormatError(f"No suitable loader found for file type: {file_ext}")
         
@@ -50,9 +50,13 @@ class FileLoaderFactory:
 # Register default loaders
 FileLoaderFactory.register_loader(".tiff", PyVipsLoader)
 FileLoaderFactory.register_loader(".tif", PyVipsLoader)
-FileLoaderFactory.register_loader(".svs", OpenSlideLoader)
+FileLoaderFactory.register_loader(".svs", PyVipsLoader)
 FileLoaderFactory.register_loader(".png", PyVipsLoader)
 FileLoaderFactory.register_loader(".jpg", PyVipsLoader)
 FileLoaderFactory.register_loader(".jpeg", PyVipsLoader)
 
         
+"""
+real 278.91
+user 2109.01
+sys 5890.37"""

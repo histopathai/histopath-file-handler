@@ -15,7 +15,6 @@ DEFAULT_DEEPZOOM_TILE_SUFFIX = ".jpg"
 # HPZ Archive Settings
 HPZ_FILE_EXTENSION = ".hpz"
 HPZ_META_JSON_FILENAME = "meta.json"
-HPZ_DZI_BASE_NAME = "image"
 
 # Image Rotation Angles
 ROTATION_ANGLES = [0, 90, 180, 270]

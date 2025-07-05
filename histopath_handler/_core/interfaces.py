@@ -57,21 +57,7 @@ class IPyramidBuilder(ABC):
         
         pass
 
-    @abstractmethod
-    def build_hpz_archive(self,
-                          image_object: Any,
-                          region: Region,
-                          output_hpz_path: str,
-                          tile_size: int,
-                          overlap: int,
-                          suffix: str,
-                          quality: int,
-                          angle: int,
-                          compression_level_zip: int,
-                          compression_method_vips: int,
-                          meta_data: Optional[Dict[str, Any]] = None) -> str:
-        pass
-
+   
 class IMetadataParser(ABC):
     @abstractmethod
     def parse_metadata(self, image_object: Any) -> Dict[str, Any]:

@@ -8,11 +8,11 @@ from histopath_handler._core.models import ImageInfo
 from histopath_handler._core.exceptions import ImageLoadingError
 from histopath_handler._core.constants import METADATA_PROPERTY_MPP_X, METADATA_PROPERTY_MPP_Y
 from histopath_handler._core.utils import calculate_scaled_dimensions
-
+from histopath_handler._core.utils import get_file_extension
+from .openslide_loader import OpenSlideLoader
 
 class PyVipsLoader(IFileLoader):
     def load_image(self, file_path: str) -> pyvips.Image:
-
         try:
             return pyvips.Image.new_from_file(file_path)
         except pyvips.Error as e:
@@ -72,6 +72,12 @@ class PyVipsLoader(IFileLoader):
                     mpp_x = (1 / xres) * 25400 # 1 inch = 25400 microns
                     mpp_y = (1 / yres) * 25400
         except pyvips.Error:
+            print("Warning: Failed to retrieve MPP from image metadata. Using default values.")
+            ## print metadata keys
+            try:
+                print("Available metadata keys:", image_object.get_fields())
+            except pyvips.Error:
+                pass
             pass # Metadata might not exist or be in an unexpected format
         return mpp_x, mpp_y
 

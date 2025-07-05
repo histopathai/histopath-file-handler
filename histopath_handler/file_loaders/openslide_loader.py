@@ -2,7 +2,7 @@ import openslide
 import numpy as np
 import pyvips # For converting OpenSlide thumbnail to pyvips.Image
 
-from typing import Any, Tuple, Optional, List, Dict
+from typing import Any, Tuple, Optional, Dict
 from histopath_handler._core.interfaces import IFileLoader
 from histopath_handler._core.models import ImageInfo
 from histopath_handler._core.exceptions import ImageLoadingError
@@ -22,16 +22,16 @@ class OpenSlideLoader(IFileLoader):
         
 
     
-    def get_image_info(self, file_path: str, loaded_image_object: openslide.OpenSlide) -> ImageInfo:
-        width_l0, height_l0 = loaded_image_object.dimensions
+    def get_image_info(self, file_path: str, image_object: openslide.OpenSlide) -> ImageInfo:
+        width_l0, height_l0 = image_object.dimensions
 
-        level_count = loaded_image_object.level_count
-        level_dimensions= loaded_image_object.level_dimensions
+        level_count = image_object.level_count
+        level_dimensions= image_object.level_dimensions
 
-        mpp_x, mpp_y = self._get_mpp_from_openslide_metadata(loaded_image_object.properties)
+        mpp_x, mpp_y = self._get_mpp_from_openslide_properties(image_object.properties)
         
 
-        metadata = dict(loaded_image_object.properties)
+        metadata = dict(image_object.properties)
 
         return ImageInfo(
             file_path=file_path,
@@ -52,24 +52,29 @@ class OpenSlideLoader(IFileLoader):
             mpp_y = float(properties[openslide.PROPERTY_NAME_MPP_Y])
         return mpp_x, mpp_y
     
-    def get_thumbnail(self, loaded_image_object: Any, max_width: int) -> pyvips.Image:
-        width_l0, height_l0 = self.get_dimensions(loaded_image_object)
-        thumbnail_height = int( height_l0 *max_width / width_l0)
-        thumbnail_pil = loaded_image_object.get_thumbnail((max_width, thumbnail_height))
+    def get_dimensions(self, image_object: Any) -> Tuple[int, int]:
+        if isinstance(image_object, openslide.OpenSlide):
+            return image_object.dimensions
+        else:
+            raise TypeError("Expected an OpenSlide object to get dimensions.")
 
-        np_img = np.array(thumbnail_pil)
-        bands = np_img.shape[2] if len(np_img.shape) == 3 else 1
+    def get_thumbnail(self, image_object: Any, max_width: int) -> pyvips.Image:
+        
+        width_l0, height_l0 = self.get_dimensions(image_object)
+        if width_l0 <= max_width:
+            size = (width_l0, height_l0)
+        else:
+            scale = max_width / width_l0
+            size = (max_width, int(height_l0 * scale))
 
-        return pyvips.Image.new_from_memory(
-            np_img.tobytes(),
-            width=np_img.shape[1],
-            height=np_img.shape[0],
-            bands=bands,
-            format='uchar'
-        )
+        thumbnail = image_object.get_thumbnail(size)
+        # Convert OpenSlide thumbnail (PIL Image) to pyvips.Image
+        thumbnail_np = np.array(thumbnail)
+        thumbnail_vips = pyvips.Image.new_from_array(thumbnail_np)
+        return thumbnail_vips
     
-    def close_image(self, loaded_image_object: Any):
-        if loaded_image_object:
-            loaded_image_object.close()
+    def close_image(self, image_object: Any):
+        if image_object:
+            image_object.close()
 
             
